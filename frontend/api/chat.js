@@ -1,5 +1,32 @@
 import OpenAI from 'openai';
 
+// --- 1. 정적 미디어 정보 및 관련 함수 정의 ---
+const STATIC_MEDIA = {
+  // 키워드: { kind: '종류', urls: ['경로1', '경로2', ...] }
+  // 모든 경로는 GAI/frontend/public/ 폴더를 기준으로 합니다.
+  // 예: /images/some-image.png 는 실제 파일 위치가 GAI/frontend/public/images/some-image.png 여야 합니다.
+  '흉부엑스레이': { kind: 'image', urls: ['/images/흉부엑스레이.png'] },
+  '흉부엑스레이 결과': { kind: 'image', urls: ['/images/흉부엑스레이.png'] },
+  '부비동엑스레이': { kind: 'image', urls: ['/images/부비동엑스레이.png'] },
+  '부비동엑스레이 결과': { kind: 'image', urls: ['/images/부비동엑스레이.png'] },
+  '폐기능 검사': { kind: 'image', urls: ['/images/폐기능검사.png', '/images/폐기능검사2.png'] },
+  '폐기능': { kind: 'image', urls: ['/images/폐기능검사.png', '/images/폐기능검사2.png'] },
+  '폐음 청취': { kind: 'audio', urls: ['/images/폐음.mp3'] },
+  '홀로그램 보기': { kind: 'video', urls: ['/images/홀로그램 보기.mp4'] }
+  // ... 필요에 따라 더 많은 키워드와 미디어 정보를 추가 ...
+};
+
+function getStaticMediaResponse(text) {
+  for (const keyword in STATIC_MEDIA) {
+    if (text.includes(keyword)) {
+      return STATIC_MEDIA[keyword]; // { kind, urls } 객체 반환
+    }
+  }
+  return null; // 일치하는 키워드가 없으면 null 반환
+}
+// --- 여기까지 정적 미디어 관련 코드 ---
+
+
 // Vercel 환경 변수에서 API 키를 가져옵니다.
 // Vercel 프로젝트 설정의 "Environment Variables" 탭에서 
 // OPENAI_API_KEY 라는 이름으로 실제 키를 미리 저장해두어야 합니다.
@@ -14,7 +41,7 @@ const SYSTEM_PROMPT = `📌 기본 역할
 
 ❌ 절대 하지 말아야 할 것
 절대 너가 먼저 질문을 해서는 안 됩니다.
-유저에게 도움을 주려는 말 ("무엇을 도와드릴까요?", "요즘 어떻게 지내세요?" 등) 절대 하지 마세요.
+유저에게 도움을 주려는 말 (“무엇을 도와드릴까요?”, “요즘 어떻게 지내세요?” 등) 절대 하지 마세요.
 진단명을 먼저 말하거나 암시하지 마세요.
 
 🎭 환자 역할 수행 지침
@@ -64,41 +91,55 @@ const SYSTEM_PROMPT = `📌 기본 역할
 미혼`;
 
 export default async function handler(req, res) {
-  // Vercel 서버리스 함수는 POST, GET 등 모든 HTTP 메소드를 받을 수 있습니다.
-  // 이 예시에서는 POST 요청만 처리하도록 합니다.
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
   }
 
   try {
-    // 프론트엔드에서 POST 요청 시 body에 'prompt'라는 이름으로 메시지를 보냈다고 가정합니다.
     const userPrompt = req.body.prompt;
 
     if (!userPrompt) {
       return res.status(400).json({ message: 'Error: Prompt is required in the request body.' });
     }
 
-    // OpenAI API 호출 (Chat Completions API 사용 예시)
+    // --- 정적 미디어 응답 우선 확인 ---
+    const staticMedia = getStaticMediaResponse(userPrompt);
+
+    if (staticMedia) {
+      // 정적 미디어 키워드가 있다면 해당 정보와 함께 간단한 텍스트 응답 반환
+      console.log('[Static Media Response Sent]', staticMedia); // Vercel 로그에서 확인 가능
+      return res.status(200).json({
+        // 사용자가 입력한 키워드를 포함한 간단한 메시지를 함께 보냅니다.
+        response: `다음은 요청하신 "${Object.keys(STATIC_MEDIA).find(key => userPrompt.includes(key))}" 관련 자료입니다.`,
+        media: staticMedia // { kind, urls } 객체 전달
+      });
+    }
+
+    // --- 3. 정적 미디어 키워드가 없다면 OpenAI API 호출 ---
+    // 👇👇👇 중요: 여기에 사용자님의 AI 역할/지침을 넣어주세요! 👇👇👇
     const completion = await openai.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT }, // 수정된 시스템 프롬프트 사용
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
-      model: 'gpt-4o', // 모델을 gpt-4o로 변경
-      // 필요하다면 다른 옵션들(temperature, max_tokens 등)을 추가할 수 있습니다.
-      temperature: 0.7, // 기존 openai.js의 값 참조
-      max_tokens: 500    // 기존 openai.js의 값 참조
+      model: 'gpt-4o',
+      temperature: 0.7,
+      max_tokens: 500
     });
 
     const assistantResponse = completion.choices[0].message.content;
-
-    // 프론트엔드에 성공적으로 응답을 보냅니다.
-    res.status(200).json({ response: assistantResponse });
+    
+    console.log('[OpenAI API Response Sent]', assistantResponse); // Vercel 로그에서 확인 가능
+    res.status(200).json({ response: assistantResponse }); // 이 경우 media는 없음 (undefined)
 
   } catch (error) {
-    // 오류 발생 시 콘솔에 로그를 남기고, 프론트엔드에는 일반적인 오류 메시지를 보냅니다.
-    console.error('Error calling OpenAI API:', error.response ? error.response.data : error.message);
-    res.status(500).json({ message: 'Error processing your request with OpenAI' });
+    // 오류 발생 시 좀 더 자세한 로그를 남깁니다.
+    console.error('Error in API handler:', error); // 전체 에러 객체 로깅
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+    }
+    res.status(500).json({ message: 'Error processing your request' });
   }
 } 
