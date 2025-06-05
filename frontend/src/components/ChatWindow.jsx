@@ -13,7 +13,6 @@ import SendIcon from '@mui/icons-material/Send';
 import PersonIcon from '@mui/icons-material/Person';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import { sendMessage } from '../api';
 import { auth, database } from '../firebase';
 import {
   ref,
@@ -24,6 +23,32 @@ import {
   query,
   orderByChild,
 } from 'firebase/database';
+
+// React 컴포넌트 외부에 함수로 작성
+async function callChatAPI(userMessage) {
+  try {
+    const response = await fetch('/api/chat', { // Vercel에 배포된 우리 API 경로
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt: userMessage }), 
+    });
+
+    const data = await response.json(); 
+
+    if (response.ok) {
+      console.log('GPT 응답:', data.response);
+      return data.response; 
+    } else {
+      console.error('API 오류:', data.message);
+      return `오류: ${data.message}`;
+    }
+  } catch (error) {
+    console.error('네트워크 또는 기타 오류:', error);
+    return '죄송합니다. 요청을 처리하는 중 오류가 발생했습니다.';
+  }
+}
 
 function ChatWindow({ appBarHeight }) {
   const theme = useTheme();
@@ -70,24 +95,23 @@ function ChatWindow({ appBarHeight }) {
     try {
       const userMessageRef = push(messagesRef);
       await set(userMessageRef, newMessageObj);
-      const backendResponse = await sendMessage(currentInput, {});
+      
+      // sendMessage 대신 callChatAPI 호출
+      const gptResponseText = await callChatAPI(currentInput);
+
       let botMessageObj = {
         role: 'assistant',
         timestamp: serverTimestamp(),
         userId: 'assistant',
+        kind: 'text', // 우선 텍스트로 가정, 필요시 응답 포맷에 따라 수정
+        content: gptResponseText, // API로부터 받은 응답
       };
-      if (backendResponse && typeof backendResponse.kind !== 'undefined') {
-        if (backendResponse.kind === 'image' || backendResponse.kind === 'audio' || backendResponse.kind === 'video') {
-          botMessageObj.kind = backendResponse.kind;
-          botMessageObj.urls = backendResponse.urls;
-        } else {
-          botMessageObj.kind = 'text';
-          botMessageObj.content = backendResponse.text;
-        }
-      } else {
-        botMessageObj.kind = 'text';
-        botMessageObj.content = '죄송합니다. 응답을 이해하지 못했습니다.';
+      
+      // GPT 응답이 오류 메시지인지 확인 (선택적)
+      if (gptResponseText.startsWith('오류:') || gptResponseText.startsWith('죄송합니다.')) {
+        // 여기서 특별한 처리를 할 수도 있습니다. (예: 오류 스타일 적용)
       }
+
       const botMessageRef = push(messagesRef);
       await set(botMessageRef, botMessageObj);
     } catch (error) {
