@@ -1,0 +1,7 @@
+{
+  "model": "gpt-4",
+  "auth": {
+    "type": "openai",
+    "apiKey": "${OPENAI_API_KEY}"
+  }
+} 

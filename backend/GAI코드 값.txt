@@ -1,0 +1,92 @@
+Write a PRD document based on the following information:
+
+<product-overview>
+저희는 어떤 대학교 의과대학에서 실제 환자와 대화하듯 API를  AI와 연결하여 대화하고 시각적자료를 제시하는 의과대학 전용 에이전트를 만들거야
+</product-overview>
+
+<must-features>
+- 1. API로 AI 연결
+- 2. DB를 넣으면 바로 반영되는것 
+- 3. 실제 환자처럼 인격을 부여할것
+- 4. 다양한 케이스를 만들예정
+- 5. 커스터마이징이 가능하도록 설정할것
+</must-features>
+
+<target-user-persona>
+의과대학 학생들
+</target-user-persona>
+
+<target-platforms>
+- desktop
+- web
+</target-platforms>
+
+<storage-type>
+local(no-database)
+</storage-type>
+
+PRD must include the following contents:
+
+<table-of-contents>
+- Detailed product description
+- Reference Services with detailed rationale
+- Core features and specifications
+- Suggested additional features
+- User persona and scenarios
+- Technical stack recommendations
+</table-of-contents>
+
+<response-format>
+Use markdown format
+</response-format>
+
+<guidelines>
+- Use tables or lists where appropriate to organize information systematically.
+- All user interactions, including inputs and outputs, must be in Korean.
+- Provide accurate answers with reliable references
+- Write in Korean
+- Clearly separate each section
+- Collect additional reference services and provide detailed rationale
+- Do not include detailed data structure and storage design
+</guidelines>
+
+Write an Information Architecture document based on PRD, and following information:
+
+<navigation-type>
+topbar
+</navigation-type>
+
+<auth-type>
+required
+</auth-type>
+
+
+IA document must include the following contents:
+
+<table-of-contents>
+- Site Map
+- User Flow
+- Navigation Structure
+- Page Hierarchy
+- Content Organization
+- Interaction Patterns
+- URL Structure
+- Component Hierarchy
+</table-of-contents>
+
+<response-format>
+Use markdown format
+</response-format>
+
+<guidelines>
+- Use tables or lists where appropriate to organize information systematically
+- All user interactions, including inputs and outputs, must be in Korean
+- Provide accurate answers with reliable references
+- Write in Korean
+- Clearly separate each section
+- Consider user experience and accessibility
+- Include responsive design considerations
+- Consider SEO best practices
+</guidelines>
+
+YOUR_API_KEY_PLACEHOLDER
