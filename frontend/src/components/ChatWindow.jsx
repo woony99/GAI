@@ -38,15 +38,15 @@ async function callChatAPI(userMessage) {
     const data = await response.json(); 
 
     if (response.ok) {
-      console.log('GPT 응답:', data.response);
-      return data.response; 
+      console.log('API 응답:', data); // 전체 응답 객체를 로깅
+      return data; // 전체 데이터 객체 반환 { response, media }
     } else {
       console.error('API 오류:', data.message);
-      return `오류: ${data.message}`;
+      return { response: `오류: ${data.message}` }; // 오류 발생 시에도 객체 형태로 반환
     }
   } catch (error) {
     console.error('네트워크 또는 기타 오류:', error);
-    return '죄송합니다. 요청을 처리하는 중 오류가 발생했습니다.';
+    return { response: '죄송합니다. 요청을 처리하는 중 오류가 발생했습니다.' }; // 오류 발생 시에도 객체 형태로 반환
   }
 }
 
@@ -97,18 +97,19 @@ function ChatWindow({ appBarHeight }) {
       await set(userMessageRef, newMessageObj);
       
       // sendMessage 대신 callChatAPI 호출
-      const gptResponseText = await callChatAPI(currentInput);
+      const apiResponse = await callChatAPI(currentInput); // API로부터 전체 응답 받기
 
       let botMessageObj = {
         role: 'assistant',
         timestamp: serverTimestamp(),
         userId: 'assistant',
-        kind: 'text', // 우선 텍스트로 가정, 필요시 응답 포맷에 따라 수정
-        content: gptResponseText, // API로부터 받은 응답
+        content: apiResponse.response, // 텍스트 응답
+        kind: apiResponse.media ? apiResponse.media.kind : 'text', // media 종류
+        urls: apiResponse.media ? apiResponse.media.urls : null, // media URL 배열
       };
       
       // GPT 응답이 오류 메시지인지 확인 (선택적)
-      if (gptResponseText.startsWith('오류:') || gptResponseText.startsWith('죄송합니다.')) {
+      if (apiResponse.response.startsWith('오류:') || apiResponse.response.startsWith('죄송합니다.')) {
         // 여기서 특별한 처리를 할 수도 있습니다. (예: 오류 스타일 적용)
       }
 
@@ -210,7 +211,7 @@ function ChatWindow({ appBarHeight }) {
                     {msg.urls && msg.urls.map((src, i) => (
                       <img 
                         key={i} 
-                        src={src} 
+                        src={encodeURI(src)} 
                         alt={`assistant-img-${i}`}
                         style={{ maxWidth: '100%', borderRadius: '12px', display: 'block' }} 
                       />
@@ -224,9 +225,9 @@ function ChatWindow({ appBarHeight }) {
                         controls
                         style={{ maxWidth: '100%', borderRadius: '12px' }}
                       >
-                        <source src={src} type="audio/mpeg" />
-                        <source src={src} type="audio/wav" />
-                        <source src={src} type="audio/ogg" />
+                        <source src={encodeURI(src)} type="audio/mpeg" />
+                        <source src={encodeURI(src)} type="audio/wav" />
+                        <source src={encodeURI(src)} type="audio/ogg" />
                         오디오를 재생할 수 없습니다.
                       </audio>
                     ))}
@@ -239,9 +240,9 @@ function ChatWindow({ appBarHeight }) {
                         controls
                         style={{ maxWidth: '100%', borderRadius: '12px', maxHeight: '300px' }}
                       >
-                        <source src={src} type="video/mp4" />
-                        <source src={src} type="video/avi" />
-                        <source src={src} type="video/mov" />
+                        <source src={encodeURI(src)} type="video/mp4" />
+                        <source src={encodeURI(src)} type="video/avi" />
+                        <source src={encodeURI(src)} type="video/mov" />
                         비디오를 재생할 수 없습니다.
                       </video>
                     ))}
